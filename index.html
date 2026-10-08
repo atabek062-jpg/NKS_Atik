@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Товары по фирмам</title>
 <style>
-:root{--bg:#f6f5f2;--card:#fff;--tx:#1d1d1b;--mu:#76746e;--bd:#e4e2dc;--ac:#2f6b4f;--acx:#fff;--gn:#1f7a45;--rd:#c0392b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161715;--card:#222320;--tx:#efeee9;--mu:#9a988f;--bd:#34352f;--ac:#5fb58a;--acx:#10231a;--gn:#6fd39a;--rd:#ef7d70}}
-:root[data-theme="dark"]{--bg:#161715;--card:#222320;--tx:#efeee9;--mu:#9a988f;--bd:#34352f;--ac:#5fb58a;--acx:#10231a;--gn:#6fd39a;--rd:#ef7d70}
+:root{--bg:#f6f5f2;--card:#fff;--tx:#1d1d1b;--mu:#76746e;--bd:#e4e2dc;--ac:#2f6b4f;--acx:#fff;--gn:#1f7a45;--rd:#c0392b;--bl:#0b5ed7;--blb:#eaf2ff;--gnb:#e8f6ee;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161715;--card:#222320;--tx:#efeee9;--mu:#9a988f;--bd:#34352f;--ac:#5fb58a;--acx:#10231a;--gn:#6fd39a;--rd:#ef7d70;--bl:#7db2ff;--blb:#1c2a3f;--gnb:#1b2e24}}
+:root[data-theme="dark"]{--bg:#161715;--card:#222320;--tx:#efeee9;--mu:#9a988f;--bd:#34352f;--ac:#5fb58a;--acx:#10231a;--gn:#6fd39a;--rd:#ef7d70;--bl:#7db2ff;--blb:#1c2a3f;--gnb:#1b2e24}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
@@ -26,7 +26,7 @@ h1{font-size:22px;margin:8px 0 16px}
 .ph{width:84px;height:84px;border-radius:10px;background:var(--bg);border:1px solid var(--bd);object-fit:cover;flex:none;display:flex;align-items:center;justify-content:center;color:var(--mu);font-size:12px}
 .info{flex:1;min-width:0}
 .info b{display:block;word-break:break-word}
-.row{display:flex;justify-content:space-between;font-size:14px;margin-top:3px}
+.row{display:flex;justify-content:space-between;font-size:14px;margin-top:3px;gap:8px}
 .gain{color:var(--gn);font-weight:700}.gain.neg{color:var(--rd)}
 .acts{display:flex;gap:8px;margin-top:10px}
 .empty{text-align:center;color:var(--mu);padding:28px 8px}
@@ -34,10 +34,15 @@ h1{font-size:22px;margin:8px 0 16px}
 .md{background:var(--card);width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:18px;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px));max-height:92%;overflow-y:auto}
 .md h2{margin:0 0 12px;font-size:18px}
 label{display:block;font-size:13px;color:var(--mu);margin:10px 0 4px}
-input[type=text],input[type=number]{width:100%;padding:11px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit}
+input[type=text],input[type=number],select{width:100%;padding:11px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .prev{display:flex;align-items:center;gap:12px}
 .live{margin-top:12px;font-size:15px}
+.res{margin-top:12px;padding:12px;border-radius:10px;background:var(--blb);font-size:15px}
+.res b{font-size:20px;color:var(--bl)}
+.res.tot{background:var(--gnb)}
+.res.tot b{color:var(--gn)}
+.sec{margin:16px 0 0;padding-top:12px;border-top:1px solid var(--bd);font-size:13px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.04em}
 .mb{display:flex;gap:8px;margin-top:16px}.mb .btn{flex:1}
 </style>
 </head>
@@ -45,6 +50,7 @@ input[type=text],input[type=number]{width:100%;padding:11px;border:1px solid var
 <div class="wrap" id="app"></div>
 <script>
 var KEY='catalog_v1',S,cur=null;
+var UNITS=[['шт','Штук'],['коробка','Коробка'],['кг','Килограмм']];
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 function load(){try{var r=localStorage.getItem(KEY);if(r)return JSON.parse(r)}catch(e){}return{firms:[{id:uid(),name:'Моя фирма',products:[]}]}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
@@ -62,9 +68,13 @@ function render(){
     h='<div class="top"><button class="btn sm" data-act="back">‹ Назад</button><h1>'+esc(f.name)+'</h1></div>';
     if(!f.products.length)h+='<div class="empty">Товаров пока нет</div>';
     f.products.forEach(function(p){
-      var g=p.price-p.cost;
+      var u=p.unit||'шт',bq=p.bq||1,bp=(p.bp!=null)?p.bp:p.cost,g=p.price-p.cost;
       h+='<div class="card"><div class="prod">'+(p.photo?'<img class="ph" src="'+p.photo+'" alt="">':'<div class="ph">нет фото</div>')+
-      '<div class="info"><b>'+esc(p.name)+'</b><div class="row"><span class="mu">Приход (1 шт)</span><span>'+fmt(p.cost)+'</span></div><div class="row"><span class="mu">Продажа (1 шт)</span><span>'+fmt(p.price)+'</span></div><div class="row"><span class="mu">Выгода (1 шт)</span><span class="gain'+(g<0?' neg':'')+'">'+fmt(g)+'</span></div></div></div>'+
+      '<div class="info"><b>'+esc(p.name)+'</b>'+
+      '<div class="row"><span class="mu">Блок</span><span>'+fmt(bq)+' '+esc(u)+' / '+fmt(bp)+'</span></div>'+
+      '<div class="row"><span class="mu">Приход (1 '+esc(u)+')</span><span>'+fmt(p.cost)+'</span></div>'+
+      '<div class="row"><span class="mu">Продажа (1 '+esc(u)+')</span><span>'+fmt(p.price)+'</span></div>'+
+      '<div class="row"><span class="mu">Выгода (1 '+esc(u)+')</span><span class="gain'+(g<0?' neg':'')+'">'+fmt(g)+'</span></div></div></div>'+
       '<div class="acts"><button class="btn sm" data-edit="'+p.id+'">Изменить</button><button class="btn sm dn" data-del="'+p.id+'">Удалить</button></div></div>';
     });
     h+='<button class="btn pr" data-act="add" style="width:100%">+ Добавить товар</button>';
@@ -79,16 +89,40 @@ function firmForm(){
 }
 function prodForm(p){
   var photo=p?p.photo:'',f=firm();
-  var o=modal('<h2>'+(p?'Изменить товар':'Новый товар')+'</h2><div class="prev"><div id="pv" class="ph">нет фото</div><div><input type="file" accept="image/*" id="fi"></div></div>'+
+  var curUnit=p?(p.unit||'шт'):'шт';
+  var bqV=p?(p.bq!=null?p.bq:1):'';
+  var bpV=p?(p.bp!=null?p.bp:p.cost):'';
+  var opts=UNITS.map(function(u){return '<option value="'+u[0]+'"'+(u[0]===curUnit?' selected':'')+'>'+u[1]+'</option>'}).join('');
+  var o=modal('<h2>'+(p?'Изменить товар':'Новый товар')+'</h2>'+
+  '<div class="prev"><div id="pv" class="ph">нет фото</div><div><input type="file" accept="image/*" id="fi"></div></div>'+
   '<label>Название</label><input type="text" id="nm" value="'+(p?esc(p.name):'')+'">'+
-  '<div class="g2"><div><label>Приход (1 шт)</label><input type="number" inputmode="decimal" id="co" value="'+(p?p.cost:'')+'"></div><div><label>Продажа (1 шт)</label><input type="number" inputmode="decimal" id="pr" value="'+(p?p.price:'')+'"></div></div>'+
-  '<div class="live">Выгода (1 шт): <span class="gain" id="lv">0</span></div>'+
+  '<div class="sec">Приход (блок)</div>'+
+  '<div class="g2"><div><label>Количество в блоке</label><input type="number" inputmode="decimal" min="0" step="any" id="bq" placeholder="Например: 12" value="'+bqV+'"></div>'+
+  '<div><label>Цена блока</label><input type="number" inputmode="decimal" min="0" step="any" id="bp" placeholder="Например: 60000" value="'+bpV+'"></div></div>'+
+  '<label>Единица измерения</label><select id="un">'+opts+'</select>'+
+  '<div class="res">Цена за 1 <span class="un"></span>: <b id="cu">0</b></div>'+
+  '<div class="sec">Продажа</div>'+
+  '<label>Продажа (1 <span class="un"></span>)</label><input type="number" inputmode="decimal" min="0" step="any" id="pr" value="'+(p?p.price:'')+'">'+
+  '<div class="live">Выгода (1 <span class="un"></span>): <span class="gain" id="lv">0</span></div>'+
+  '<div class="sec">Расчёт покупки</div>'+
+  '<label>Количество (для покупки)</label><input type="number" inputmode="decimal" min="0" step="any" id="by" placeholder="Например: 5">'+
+  '<div class="res tot">Общая сумма: <b id="tt">0</b></div>'+
   '<div class="mb"><button class="btn" id="c">Отмена</button><button class="btn pr" id="s">Сохранить</button></div>');
   var pv=o.querySelector('#pv');
   function showPh(){if(photo){pv.outerHTML='<img id="pv" class="ph" src="'+photo+'" alt="">';pv=o.querySelector('#pv')}}
   showPh();
-  function live(){var g=(parseFloat(o.querySelector('#pr').value)||0)-(parseFloat(o.querySelector('#co').value)||0),l=o.querySelector('#lv');l.textContent=fmt(g);l.className='gain'+(g<0?' neg':'')}
-  o.querySelector('#co').oninput=live;o.querySelector('#pr').oninput=live;live();
+  function val(id){return parseFloat(o.querySelector(id).value)||0}
+  function perUnit(){var q=val('#bq');return q>0?val('#bp')/q:0}
+  function live(){
+    var u=o.querySelector('#un').value,pu=perUnit(),g=val('#pr')-pu;
+    Array.prototype.forEach.call(o.querySelectorAll('.un'),function(e){e.textContent=u});
+    o.querySelector('#cu').textContent=fmt(pu);
+    var l=o.querySelector('#lv');l.textContent=fmt(g);l.className='gain'+(g<0?' neg':'');
+    o.querySelector('#tt').textContent=fmt(val('#by')*pu);
+  }
+  ['#bq','#bp','#pr','#by'].forEach(function(id){o.querySelector(id).addEventListener('input',live)});
+  o.querySelector('#un').addEventListener('change',live);
+  live();
   o.querySelector('#fi').onchange=function(e){
     var file=e.target.files[0];if(!file)return;
     var r=new FileReader();r.onload=function(){var im=new Image();im.onload=function(){
@@ -99,7 +133,7 @@ function prodForm(p){
   o.querySelector('#c').onclick=function(){o.remove()};
   o.querySelector('#s').onclick=function(){
     var n=o.querySelector('#nm').value.trim();if(!n){o.querySelector('#nm').focus();return}
-    var d={name:n,cost:parseFloat(o.querySelector('#co').value)||0,price:parseFloat(o.querySelector('#pr').value)||0,photo:photo};
+    var d={name:n,bq:val('#bq'),bp:val('#bp'),unit:o.querySelector('#un').value,cost:perUnit(),price:val('#pr'),photo:photo};
     if(p)Object.assign(p,d);else f.products.push(Object.assign({id:uid()},d));
     save();o.remove();render();
   };
