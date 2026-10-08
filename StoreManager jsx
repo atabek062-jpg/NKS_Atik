@@ -1,0 +1,72 @@
+
+import React, { useState } from 'react';
+
+function StoreManager() {
+  const [products, setProducts] = useState([
+    { id: 1, name: 'Хлеб', price: 5, stock: 20 },
+    { id: 2, name: 'Молоко', price: 10, stock: 15 },
+  ]);
+  const [cart, setCart] = useState([]);
+
+  const addToCart = (product) => {
+    if (product.stock > 0) {
+      setCart([...cart, product]);
+      setProducts(products.map(p => p.id === product.id ? { ...p, stock: p.stock - 1 } : p));
+    }
+  };
+
+  const completeSale = () => {
+    setCart([]);
+    alert('Продажа успешно зафиксирована!');
+  };
+
+  return (
+    <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+      <h1>Управление магазином</h1>
+      
+      <section>
+        <h2>Каталог товаров</h2>
+        <table border="1" width="100%" style={{ textAlign: 'left', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              <th>Товар</th>
+              <th>Цена</th>
+              <th>Остаток</th>
+              <th>Действие</th>
+            </tr>
+          </thead>
+          <tbody>
+            {products.map(product => (
+              <tr key={product.id}>
+                <td>{product.name}</td>
+                <td>{product.price} сум</td>
+                <td>{product.stock}</td>
+                <td>
+                  <button onClick={() => addToCart(product)} disabled={product.stock === 0}>
+                    {product.stock > 0 ? 'Добавить в чек' : 'Нет в наличии'}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      <section style={{ marginTop: '30px' }}>
+        <h2>Текущий чек</h2>
+        {cart.length === 0 ? <p>Чек пуст</p> : (
+          <div>
+            <ul>
+              {cart.map((item, index) => <li key={index}>{item.name} — {item.price} сум</li>)}
+            </ul>
+            <p>Итого: {cart.reduce((sum, item) => sum + item.price, 0)} сум</p>
+            <button onClick={completeSale}>Оформить продажу</button>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+export default StoreManager;
+
