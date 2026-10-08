@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мой склад</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>📦 Мой склад</h1>
+      <p>Товар • приход • продажа • выгода</p>
+    </header>
+
+    <section class="card">
+      <h2>Добавить товар</h2>
+
+      <label>Фирма</label>
+      <input id="company" placeholder="Например: Coca-Cola">
+
+      <label>Название товара</label>
+      <input id="product" placeholder="Например: Cola 0.5">
+
+      <label>Фото товара</label>
+      <input id="photo" type="file" accept="image/*">
+      <img id="preview" class="preview" alt="Фото товара">
+
+      <div class="grid">
+        <div>
+          <label>Тип упаковки</label>
+          <select id="unitType" onchange="updateLabels()">
+            <option value="piece">Штука</option>
+            <option value="box">Коробка</option>
+            <option value="kg">Килограмм</option>
+          </select>
+        </div>
+
+        <div>
+          <label id="countLabel">Количество штук в блоке</label>
+          <input id="countPerPack" type="number" min="0" step="0.001" value="1" oninput="calculate()">
+        </div>
+      </div>
+
+      <label>Цена прихода за упаковку</label>
+      <input id="purchasePackPrice" type="number" min="0" step="0.01" placeholder="0" oninput="calculate()">
+
+      <label>Количество упаковок</label>
+      <input id="packs" type="number" min="0" step="0.001" placeholder="0" oninput="calculate()">
+
+      <label>Продажная цена за 1 штуку / кг</label>
+      <input id="saleUnitPrice" type="number" min="0" step="0.01" placeholder="0" oninput="calculate()">
+
+      <div class="result">
+        <div><span>Цена за 1 единицу</span><b id="unitCost">0.00</b></div>
+        <div><span>Общее количество единиц</span><b id="totalUnits">0</b></div>
+        <div><span>Общий приход</span><b id="totalPurchase">0.00</b></div>
+        <div><span>Общая продажа</span><b id="totalSale">0.00</b></div>
+        <div class="profit"><span>Общая выгода</span><b id="totalProfit">0.00</b></div>
+      </div>
+
+      <button onclick="saveProduct()">Сохранить товар</button>
+      <button class="secondary" onclick="clearForm()">Очистить</button>
+    </section>
+
+    <section class="card">
+      <h2>Товары</h2>
+      <input id="search" placeholder="🔎 Поиск товара или фирмы" oninput="renderProducts()">
+      <div id="products"></div>
+    </section>
+  </main>
+
+<script>
+let products = JSON.parse(localStorage.getItem("sklad_products") || "[]");
+let photoData = "";
+
+document.getElementById("photo").addEventListener("change", function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    photoData = reader.result;
+    document.getElementById("preview").src = photoData;
+  };
+  reader.readAsDataURL(file);
+});
+
+function n(id) {
+  return Number(document.getElementById(id).value) || 0;
+}
+
+function updateLabels() {
+  const type = document.getElementById("unitType").value;
+  const label = document.getElementById("countLabel");
+  const input = document.getElementById("countPerPack");
+
+  if (type === "piece") {
+    label.textContent = "Количество штук в блоке";
+    input.value = input.value || 1;
+  } else if (type === "box") {
+    label.textContent = "Количество штук в коробке";
+  } else {
+    label.textContent = "Вес одного блока/мешка, кг";
+  }
+  calculate();
+}
+
+function calculate() {
+  const perPack = n("countPerPack");
+  const packPrice = n("purchasePackPrice");
+  const packs = n("packs");
+  const saleUnit = n("saleUnitPrice");
+
+  const unitCost = perPack > 0 ? packPrice / perPack : 0;
+  const totalUnits = perPack * packs;
+  const totalPurchase = packPrice * packs;
+  const totalSale = saleUnit * totalUnits;
+  const totalProfit = totalSale - totalPurchase;
+
+  document.getElementById("unitCost").textContent = unitCost.toFixed(2);
+  document.getElementById("totalUnits").textContent = totalUnits.toFixed(3);
+  document.getElementById("totalPurchase").textContent = totalPurchase.toFixed(2);
+  document.getElementById("totalSale").textContent = totalSale.toFixed(2);
+  document.getElementById("totalProfit").textContent = totalProfit.toFixed(2);
+}
+
+function saveProduct() {
+  const company = document.getElementById("company").value.trim();
+  const product = document.getElementById("product").value.trim();
+  const type = document.getElementById("unitType").value;
+  const perPack = n("countPerPack");
+  const packPrice = n("purchasePackPrice");
+  const packs = n("packs");
+  const saleUnit = n("saleUnitPrice");
+
+  if (!company || !product || perPack <= 0 || packPrice < 0 || packs < 0) {
+    alert("Заполни фирму, товар, количество в упаковке, цену прихода и количество.");
+    return;
+  }
+
+  const unitCost = packPrice / perPack;
+  const totalUnits = perPack * packs;
+  const totalPurchase = packPrice * packs;
+  const totalSale = saleUnit * totalUnits;
+  const totalProfit = totalSale - totalPurchase;
+
+  products.push({
+    id: Date.now(),
+    company, product, type, perPack, packPrice, packs, saleUnit,
+    unitCost, totalUnits, totalPurchase, totalSale, totalProfit,
+    photo: photoData
+  });
+
+  localStorage.setItem("sklad_products", JSON.stringify(products));
+  alert("Товар сохранён.");
+  clearForm();
+  renderProducts();
+}
+
+function clearForm() {
+  ["company","product","purchasePackPrice","packs","saleUnitPrice"].forEach(id => {
+    document.getElementById(id).value = "";
+  });
+  document.getElementById("countPerPack").value = "1";
+  document.getElementById("photo").value = "";
+  document.getElementById("preview").src = "";
+  photoData = "";
+  calculate();
+}
+
+function deleteProduct(id) {
+  products = products.filter(p => p.id !== id);
+  localStorage.setItem("sklad_products", JSON.stringify(products));
+  renderProducts();
+}
+
+function renderProducts() {
+  const q = document.getElementById("search").value.toLowerCase();
+  const box = document.getElementById("products");
+  const list = products.filter(p =>
+    p.company.toLowerCase().includes(q) || p.product.toLowerCase().includes(q)
+  );
+
+  if (!list.length) {
+    box.innerHTML = '<p class="empty">Товаров пока нет.</p>';
+    return;
+  }
+
+  box.innerHTML = list.map(p => `
+    <article class="product">
+      ${p.photo ? `<img src="${p.photo}" alt="">` : '<div class="no-photo">📦</div>'}
+      <div class="product-info">
+        <h3>${escapeHtml(p.product)}</h3>
+        <p>${escapeHtml(p.company)}</p>
+        <p>Приход: <b>${p.unitCost.toFixed(2)}</b> / единица</p>
+        <p>Продажа: <b>${p.saleUnit.toFixed(2)}</b> / единица</p>
+        <p>Количество: <b>${p.totalUnits.toFixed(3)}</b></p>
+        <p class="profit-text">Выгода: <b>${p.totalProfit.toFixed(2)}</b></p>
+        <button class="delete" onclick="deleteProduct(${p.id})">Удалить</button>
+      </div>
+    </article>
+  `).join("");
+}
+
+function escapeHtml(value) {
+  return value.replace(/[&<>"']/g, c => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#039;"
+  }[c]));
+}
+
+updateLabels();
+calculate();
+renderProducts();
+</script>
+</body>
+</html>
